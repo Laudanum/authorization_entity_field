@@ -1,0 +1,33 @@
+<?php
+
+/**
+ * @file
+ * Contains authorization_entity_field.module..
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function authorization_entity_field_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the authorization_entity_field module.
+    case 'help.page.authorization_entity_field':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Add users to an entity&#039;s field.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function authorization_entity_field_theme() {
+  $theme = [];
+
+  return $theme;
+}

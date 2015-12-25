@@ -1,0 +1,5 @@
+name: Entity field consumer
+type: module
+description: Add users to an entity's field.
+core: 8.x
+package: Other

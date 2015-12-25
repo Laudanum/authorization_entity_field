@@ -1,0 +1,14 @@
+{
+  "name": "drupal/authorization_entity_field",
+  "type": "drupal-module",
+  "description": "Add users to an entity's field.",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "http://drupal.org/project/authorization_entity_field",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "http://drupal.org/project/issues/authorization_entity_field",
+    "source": "http://cgit.drupalcode.org/authorization_entity_field"
+  },
+  "require": { }
+}

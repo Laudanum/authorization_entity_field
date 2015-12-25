@@ -1,0 +1,4 @@
+authorization.consumer.plugin.authorization_entity_fields:
+  type: mapping
+  label: 'Authorization Entity fields consumer settings'
+  mapping:

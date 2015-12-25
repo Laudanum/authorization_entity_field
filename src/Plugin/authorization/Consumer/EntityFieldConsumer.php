@@ -33,6 +33,8 @@ class EntityFieldConsumer extends ConsumerPluginBase {
       }
     }
     ksort($entity_options);
+    ksort($bundle_options);
+    ksort($field_options);
 
     // Populate bundle options
     if ( $entity_type = $this->configuration['entity'] ) {
@@ -88,14 +90,14 @@ class EntityFieldConsumer extends ConsumerPluginBase {
       '#type' => 'select',
       '#title' => t('Match field'),
       '#options' => $field_match_options,
-      '#default_value' => NULL,
+      '#default_value' => $this->configuration['field_match'],
       '#description' => 'Map the result to an entity\'s field. eg: the title of a node.',
     );
     $form['field_add'] = array(
       '#type' => 'select',
       '#title' => t('Add field'),
       '#options' => $field_add_options,
-      '#default_value' => NULL,
+      '#default_value' => $this->configuration['field_add'],
       '#description' => 'Add the user to an entity\'s field. eg: the field_users entity reference field of a node.',
     );
     return $form;

@@ -24,7 +24,8 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     // @TODO select an entity and then a field
     $entity_options = array();
     $bundle_options = array();
-    $field_options = array();
+    $field_match_options = array();
+    $field_add_options = array();
     $entities = \Drupal::entityManager()->getDefinitions();
     foreach ( $entities as $key=>$entity ) {
       if ( $entity->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface') ) {
@@ -42,12 +43,13 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     }
 
     if ( $bundle = $this->configuration['bundle'] ) {
-      // getFields
-      $entity = \Drupal::entityManager()->getDefinition($entity_type);
-      $fields = $entity->getFields();
-      $bundles = \Drupal::entityManager()->getBundleInfo($entity_type);
-      foreach ( $bundles as $key=>$bundle ) {
-        $bundle_options[$key] = $bundle['label'];
+      $fields = \Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle);
+      // Only fields of entity reference type that permit user references.
+      foreach ( $fields as $key=>$field ) {
+        $field_match_options[$key] = $field->getLabel();
+        if ( $field->getType() == 'entity_reference' && $field->getSettings()['target_type'] == 'user' ) {
+          $field_add_options[$key] = $field->getLabel();
+        }
       }
     }
 
@@ -83,14 +85,16 @@ class EntityFieldConsumer extends ConsumerPluginBase {
       ),
     );
     $form['field_match'] = array(
-      '#type' => 'textfield',
+      '#type' => 'select',
       '#title' => t('Match field'),
+      '#options' => $field_match_options,
       '#default_value' => NULL,
       '#description' => 'Map the result to an entity\'s field. eg: the title of a node.',
     );
     $form['field_add'] = array(
-      '#type' => 'textfield',
+      '#type' => 'select',
       '#title' => t('Add field'),
+      '#options' => $field_add_options,
       '#default_value' => NULL,
       '#description' => 'Add the user to an entity\'s field. eg: the field_users entity reference field of a node.',
     );

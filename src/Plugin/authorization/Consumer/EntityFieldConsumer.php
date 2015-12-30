@@ -20,7 +20,9 @@ use Drupal\authorization\Consumer\ConsumerPluginBase;
  */
 class EntityFieldConsumer extends ConsumerPluginBase {
 
-  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+  public function buildRowForm(array $form, FormStateInterface $form_state, $index) {
+    $row = array();
+    $mappings = $this->configuration['profile']->getConsumerMappings();
     // @TODO select an entity and then a field
     $entity_options = array();
     $bundle_options = array();
@@ -36,15 +38,16 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     ksort($bundle_options);
     ksort($field_options);
 
+    $entity_type = $mappings[$index]['entity'] ? $mappings[$index]['entity'] : 'node';
     // Populate bundle options
-    if ( $entity_type = $this->configuration['entity'] ) {
+    if ( $entity_type ) {
       $bundles = \Drupal::entityManager()->getBundleInfo($entity_type);
       foreach ( $bundles as $key=>$bundle ) {
         $bundle_options[$key] = $bundle['label'];
       }
     }
 
-    if ( $bundle = $this->configuration['bundle'] ) {
+    if ( $bundle = $mappings[$index]['bundle'] ) {
       $fields = \Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle);
       // Only fields of entity reference type that permit user references.
       foreach ( $fields as $key=>$field ) {
@@ -56,11 +59,11 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     }
 
     // @TODO an AJAX callback to get the bundles based on the entity
-    $form['entity'] = array(
+    $row['entity'] = array(
       '#type' => 'select',
       '#title' => t('Entity type'),
       '#options' => $entity_options,
-      '#default_value' => $this->configuration['entity'],
+      '#default_value' => $entity_type,
       '#required' => TRUE,
       '#description' => 'Choose the type of entity to match.',
       '#ajax' => array(
@@ -71,49 +74,53 @@ class EntityFieldConsumer extends ConsumerPluginBase {
         'effect' => 'fade',
       ),
     );
-    // @TODO an AJAX callback to get the fields based on the bundle or entity
-    $form['bundle'] = array(
-      '#type' => 'select',
-      '#title' => t('Bundle type'),
-      '#options' => $bundle_options,
-      '#default_value' => $this->configuration['bundle'],
-      '#description' => 'Choose the type of bundle to match.',
-      '#ajax' => array(
-        'trigger_as' => array('name' => 'entityfieldconsumer_bundle'),
-        'callback' => '::buildAjaxEntityFieldConsumerConfigForm',
-        'wrapper' => 'authorization-consumer-config-form',
-        'method' => 'replace',
-        'effect' => 'fade',
-      ),
-    );
-    $form['field_match'] = array(
-      '#type' => 'select',
-      '#title' => t('Match field'),
-      '#options' => $field_match_options,
-      '#default_value' => $this->configuration['field_match'],
-      '#description' => 'Map the result to an entity\'s field. eg: the title of a node.',
-    );
-    $form['field_add'] = array(
-      '#type' => 'select',
-      '#title' => t('Add field'),
-      '#options' => $field_add_options,
-      '#default_value' => $this->configuration['field_add'],
-      '#description' => 'Add the user to an entity\'s field. eg: the field_users entity reference field of a node.',
-    );
-    return $form;
+    if ( $entity_type ) {
+      // @TODO an AJAX callback to get the fields based on the bundle or entity
+      $row['bundle'] = array(
+        '#type' => 'select',
+        '#title' => t('Bundle type'),
+        '#options' => $bundle_options,
+        '#default_value' => $mappings[$index]['bundle'],
+        '#description' => 'Choose the type of bundle to match.',
+        '#ajax' => array(
+          'trigger_as' => array('name' => 'entityfieldconsumer_bundle'),
+          'callback' => '::buildAjaxEntityFieldConsumerConfigForm',
+          'wrapper' => 'authorization-consumer-config-form',
+          'method' => 'replace',
+          'effect' => 'fade',
+        ),
+      );
+    }
+
+    if ( $mappings[$index]['bundle'] ) {
+      $row['field_match'] = array(
+        '#type' => 'select',
+        '#title' => t('Match field'),
+        '#options' => $field_match_options,
+        '#default_value' => $mappings[$index]['field_match'],
+        '#description' => 'Map the result to an entity\'s field. eg: the title of a node.',
+      );
+      $row['field_add'] = array(
+        '#type' => 'select',
+        '#title' => t('Add field'),
+        '#options' => $field_add_options,
+        '#default_value' => $mappings[$index]['field_add'],
+        '#description' => 'Add the user to an entity\'s field. eg: the field_users entity reference field of a node.',
+      );
+    }
+
+    return $row;
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
-    parent::validateConfigurationForm($form, $form_state);
-  }
+  public function submitRowForm(array &$form, FormStateInterface $form_state) {
+    $values = $form_state->getValues();
+    // Create an array of just the consumer values
+    $consumer_mappings = array();
+    foreach ($values as $key => $value) {
+      $consumer_mappings[] = $value['consumer_mappings'];
+    }
+    $form_state->setValue('consumer_mappings', $consumer_mappings);
 
-  /**
-   * {@inheritdoc}
-   */
-  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-    parent::submitConfigurationForm($form, $form_state);
+    parent::submitRowForm($form, $form_state);
   }
 }

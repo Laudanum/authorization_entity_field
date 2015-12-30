@@ -112,15 +112,4 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     return $row;
   }
 
-  public function submitRowForm(array &$form, FormStateInterface $form_state) {
-    $values = $form_state->getValues();
-    // Create an array of just the consumer values
-    $consumer_mappings = array();
-    foreach ($values as $key => $value) {
-      $consumer_mappings[] = $value['consumer_mappings'];
-    }
-    $form_state->setValue('consumer_mappings', $consumer_mappings);
-
-    parent::submitRowForm($form, $form_state);
-  }
 }

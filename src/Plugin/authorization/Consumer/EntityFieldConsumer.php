@@ -22,7 +22,8 @@ class EntityFieldConsumer extends ConsumerPluginBase {
 
   public function buildRowForm(array $form, FormStateInterface $form_state, $index) {
     $row = array();
-    $mappings = $this->configuration['profile']->getConsumerMappings();
+    // Gets values from the form_state or from the saved entity
+    $mappings = $form_state->getValue('mappings')[$index]['consumer_mappings'] ? $form_state->getValue('mappings')[$index]['consumer_mappings'] : $this->configuration['profile']->getConsumerMappings()[$index];
     // @TODO select an entity and then a field
     $entity_options = array();
     $bundle_options = array();
@@ -38,7 +39,7 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     ksort($bundle_options);
     ksort($field_options);
 
-    $entity_type = $mappings[$index]['entity'] ? $mappings[$index]['entity'] : 'node';
+    $entity_type = $mappings['entity'] ? $mappings['entity'] : 'node';
     // Populate bundle options
     if ( $entity_type ) {
       $bundles = \Drupal::entityManager()->getBundleInfo($entity_type);
@@ -47,7 +48,7 @@ class EntityFieldConsumer extends ConsumerPluginBase {
       }
     }
 
-    if ( $bundle = $mappings[$index]['bundle'] ) {
+    if ( $bundle = $mappings['bundle'] ) {
       $fields = \Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle);
       // Only fields of entity reference type that permit user references.
       foreach ( $fields as $key=>$field ) {
@@ -68,7 +69,7 @@ class EntityFieldConsumer extends ConsumerPluginBase {
       '#description' => 'Choose the type of entity to match.',
       '#ajax' => array(
         'trigger_as' => array('name' => 'entityfieldconsumer_enity'),
-        'callback' => '::buildAjaxEntityFieldConsumerConfigForm',
+        'callback' => array(get_class($this), 'buildAjaxEntityFieldConsumerRowForm'),
         'wrapper' => 'authorization-consumer-config-form',
         'method' => 'replace',
         'effect' => 'fade',
@@ -80,36 +81,40 @@ class EntityFieldConsumer extends ConsumerPluginBase {
         '#type' => 'select',
         '#title' => t('Bundle type'),
         '#options' => $bundle_options,
-        '#default_value' => $mappings[$index]['bundle'],
+        '#default_value' => $mappings['bundle'],
         '#description' => 'Choose the type of bundle to match.',
         '#ajax' => array(
-          'trigger_as' => array('name' => 'entityfieldconsumer_bundle'),
-          'callback' => '::buildAjaxEntityFieldConsumerConfigForm',
-          'wrapper' => 'authorization-consumer-config-form',
+          'trigger_as' => array('name' => 'mappings[' . $index . '][consumer_mappings][bundle]'),
+          'callback' => array(get_class($this), 'buildAjaxEntityFieldConsumerRowForm'),
+          'wrapper' => 'edit-mappings',
           'method' => 'replace',
           'effect' => 'fade',
         ),
       );
     }
 
-    if ( $mappings[$index]['bundle'] ) {
+    if ( $mappings['bundle'] ) {
       $row['field_match'] = array(
         '#type' => 'select',
         '#title' => t('Match field'),
         '#options' => $field_match_options,
-        '#default_value' => $mappings[$index]['field_match'],
+        '#default_value' => $mappings['field_match'],
         '#description' => 'Map the result to an entity\'s field. eg: the title of a node.',
       );
       $row['field_add'] = array(
         '#type' => 'select',
         '#title' => t('Add field'),
         '#options' => $field_add_options,
-        '#default_value' => $mappings[$index]['field_add'],
+        '#default_value' => $mappings['field_add'],
         '#description' => 'Add the user to an entity\'s field. eg: the field_users entity reference field of a node.',
       );
     }
 
     return $row;
+  }
+
+  public static function buildAjaxEntityFieldConsumerRowForm(array $form, FormStateInterface $form_state) {
+    return $form['mappings'];
   }
 
 }

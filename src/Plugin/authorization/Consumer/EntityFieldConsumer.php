@@ -117,4 +117,42 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     return $form['mappings'];
   }
 
+  /**
+   * extends revokeSingleAuthorization()
+   * {@inheritdoc}
+   */
+  public function revokeSingleAuthorization(&$user, $op, $incoming, $consumer_mapping, &$user_auth_data, $user_save=FALSE, $reset=FALSE) {
+  }
+
+  /**
+   * extends grantSingleAuthorization()
+   * {@inheritdoc}
+   */
+  public function grantSingleAuthorization(&$user, $op, $incoming, $consumer_mapping, &$user_auth_data, $user_save=FALSE, $reset=FALSE) {
+    // Find a $field in $bundle matching $match
+    // Array ( [entity] => node [bundle] => article [field_match] => nid [field_add] => field_users )
+    $entity_type = $consumer_mapping['entity'];
+    $bundle = $consumer_mapping['bundle'];
+    $field_match = $consumer_mapping['field_match'];
+    $field_add = $consumer_mapping['field_add'];
+    $match = array_shift($incoming);
+    // Create an entity query
+    $query = \Drupal::entityQuery($entity_type)
+      ->condition('type', $bundle)
+      ->condition($field_match . '.value', $match)
+      ;
+    $ids = $query->execute();
+
+    if ( $id = array_shift($ids) ) {
+      $entity = entity_load($entity_type, $id);
+      // @TODO decide if the field is an entity reference type
+      // @TODO this doesn't seem to be the right way to do this
+      $field_entities = $entity->get($field_add)->value;
+      // @TODO is the user already attached?
+      $field_entities[] = $user->id();
+      $entity->set($field_add, $field_entities);
+      $entity->save();
+    }
+  }
+
 }

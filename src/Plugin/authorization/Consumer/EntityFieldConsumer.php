@@ -131,20 +131,15 @@ class EntityFieldConsumer extends ConsumerPluginBase {
    * {@inheritdoc}
    */
   public function grantSingleAuthorization(&$user, $op, $incoming, $consumer_mapping, &$user_auth_data, $user_save=FALSE, $reset=FALSE, $create=FALSE) {
-    // Find a $field in $bundle matching $match
-    // Array ( [entity] => node [bundle] => article [field_match] => nid [field_add] => field_users )
-    $entity_type = $consumer_mapping['entity'];
-    $bundle = $consumer_mapping['bundle'];
-    $field_match = $consumer_mapping['field_match'];
-    $field_add = $consumer_mapping['field_add'];
     $match = array_shift($incoming);
 
     $target_definition = array(
-      'entity_type' => $entity_type,
-      'type' => $bundle,
-      'match' => $match,
-      'field_match' => $field_match,
-      $field_match => $match,
+      'entity_type' => $consumer_mapping['entity'],
+      'type'        => $consumer_mapping['bundle'],
+      'match'       => $match,
+      'field_match' => $consumer_mapping['field_match'],
+      'field_add'   => $consumer_mapping['field_add'],
+      $consumer_mapping['field_match'] => $match,
     );
 
     // Load or create target.
@@ -153,9 +148,10 @@ class EntityFieldConsumer extends ConsumerPluginBase {
       $entity = $this->createConsumerTarget($this->id, $target_definition);
     }
 
+    // Find a $field in $bundle matching $match
     if ( $entity ) {
       // @TODO decide if the field is an entity reference type
-      $field = $entity->get($field_add);
+      $field = $entity->get($target_definition['field_add']);
       // Required as we don't have appendItem/removeItem
       $list = $field->getValue();
 

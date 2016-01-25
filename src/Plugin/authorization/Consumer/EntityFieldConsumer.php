@@ -20,6 +20,8 @@ use Drupal\authorization\Consumer\ConsumerPluginBase;
  */
 class EntityFieldConsumer extends ConsumerPluginBase {
 
+  public $allowConsumerTargetCreation = TRUE;
+
   public function buildRowForm(array $form, FormStateInterface $form_state, $index) {
     $row = array();
     // Gets values from the form_state or from the saved entity
@@ -99,7 +101,7 @@ class EntityFieldConsumer extends ConsumerPluginBase {
         '#title' => t('Match field'),
         '#options' => $field_match_options,
         '#default_value' => $mappings['field_match'],
-        '#description' => 'Map the result to an entity\'s field. eg: the title of a node.',
+        '#description' => 'Map the result to an entity\'s field. eg: the title of a node or a custom field like <code>ldap_dn</code>.',
       );
       $row['field_add'] = array(
         '#type' => 'select',
@@ -128,7 +130,7 @@ class EntityFieldConsumer extends ConsumerPluginBase {
    * extends grantSingleAuthorization()
    * {@inheritdoc}
    */
-  public function grantSingleAuthorization(&$user, $op, $incoming, $consumer_mapping, &$user_auth_data, $user_save=FALSE, $reset=FALSE) {
+  public function grantSingleAuthorization(&$user, $op, $incoming, $consumer_mapping, &$user_auth_data, $user_save=FALSE, $reset=FALSE, $create=FALSE) {
     // Find a $field in $bundle matching $match
     // Array ( [entity] => node [bundle] => article [field_match] => nid [field_add] => field_users )
     $entity_type = $consumer_mapping['entity'];
@@ -136,6 +138,7 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     $field_match = $consumer_mapping['field_match'];
     $field_add = $consumer_mapping['field_add'];
     $match = array_shift($incoming);
+
     // Create an entity query
     $query = \Drupal::entityQuery($entity_type)
       ->condition('type', $bundle)
@@ -145,13 +148,49 @@ class EntityFieldConsumer extends ConsumerPluginBase {
 
     if ( $id = array_shift($ids) ) {
       $entity = entity_load($entity_type, $id);
+    } else if ( $create ) {
+      $entity = $this->createConsumerTarget($this->id,
+        array(
+          'entity_type' => $entity_type,
+          'type' => $bundle,
+          'match' => $match,
+          $field_match => $match,
+        )
+      );
+    }
+
+    if ( $entity ) {
       // @TODO decide if the field is an entity reference type
-      // @TODO this doesn't seem to be the right way to do this
-      $field_entities = $entity->get($field_add)->value;
+      $field = $entity->get($field_add);
+      // Required as we don't have appendItem/removeItem
+      $list = $field->getValue();
+
       // @TODO is the user already attached?
-      $field_entities[] = $user->id();
-      $entity->set($field_add, $field_entities);
+      $list[] = array('target_id' => $user->id());
+
+      $field->setValue($list);
       $entity->save();
+    }
+  }
+
+  /**
+   * extends createConsumerTarget()
+   * {@inheritdoc}
+   */
+  public function createConsumerTarget($consumer_id, $consumer) {
+    // @TODO If the field_match isn't a string type then nothing works.
+
+    // Populate the title if we're not doing that by default.
+    if ( ! array_key_exists('title', $consumer) ) {
+      $consumer['title'] = $consumer['match'];
+    }
+
+    $entity = \Drupal::entityManager()
+      ->getStorage($consumer['entity_type'])
+      ->create($consumer);
+
+    if ( $entity->save() ) {
+      return $entity;
     }
   }
 

@@ -139,24 +139,18 @@ class EntityFieldConsumer extends ConsumerPluginBase {
     $field_add = $consumer_mapping['field_add'];
     $match = array_shift($incoming);
 
-    // Create an entity query
-    $query = \Drupal::entityQuery($entity_type)
-      ->condition('type', $bundle)
-      ->condition($field_match . '.value', $match)
-      ;
-    $ids = $query->execute();
+    $target_definition = array(
+      'entity_type' => $entity_type,
+      'type' => $bundle,
+      'match' => $match,
+      'field_match' => $field_match,
+      $field_match => $match,
+    );
 
-    if ( $id = array_shift($ids) ) {
-      $entity = entity_load($entity_type, $id);
-    } else if ( $create ) {
-      $entity = $this->createConsumerTarget($this->id,
-        array(
-          'entity_type' => $entity_type,
-          'type' => $bundle,
-          'match' => $match,
-          $field_match => $match,
-        )
-      );
+    // Load or create target.
+    $entity = $this->getConsumerTarget($target_definition);
+    if ( ! $entity && $create ) {
+      $entity = $this->createConsumerTarget($this->id, $target_definition);
     }
 
     if ( $entity ) {
@@ -179,6 +173,22 @@ class EntityFieldConsumer extends ConsumerPluginBase {
         $field->setValue($list);
         $entity->save();
       }
+    }
+  }
+
+  /**
+   * extends getConsumerTarget()
+   * {@inheritdoc}
+   */
+  public function getConsumerTarget($target_definition) {
+    $query = \Drupal::entityQuery($target_definition['entity_type'])
+      ->condition('type', $target_definition['type'])
+      ->condition($target_definition['field_match'] . '.value', $target_definition['match'])
+      ;
+    $ids = $query->execute();
+
+    if ( $id = array_shift($ids) ) {
+      return entity_load($target_definition['entity_type'], $id);
     }
   }
 

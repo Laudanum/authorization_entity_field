@@ -165,11 +165,20 @@ class EntityFieldConsumer extends ConsumerPluginBase {
       // Required as we don't have appendItem/removeItem
       $list = $field->getValue();
 
-      // @TODO is the user already attached?
-      $list[] = array('target_id' => $user->id());
+      // Is the user already attached?
+      $found = FALSE;
+      foreach ( $list as $index => $value ) {
+        if ( $value['target_id'] == $user->id() ) {
+          $found = TRUE;
+          break;
+        }
+      }
+      if ( ! $found ) {
+        $list[] = array('target_id' => $user->id());
 
-      $field->setValue($list);
-      $entity->save();
+        $field->setValue($list);
+        $entity->save();
+      }
     }
   }
 
@@ -178,6 +187,7 @@ class EntityFieldConsumer extends ConsumerPluginBase {
    * {@inheritdoc}
    */
   public function createConsumerTarget($consumer_id, $consumer) {
+    // @TODO Don't create duplicates.
     // @TODO If the field_match isn't a string type then nothing works.
 
     // Populate the title if we're not doing that by default.
